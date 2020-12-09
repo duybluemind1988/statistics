@@ -1,0 +1,1060 @@
+---
+title: "statistic"
+output: html_document
+---
+# Hypothesis test
+```{r}
+#Author DataFlair
+x = rnorm(10) # 0.87
+y = rnorm(10) # -0.051
+```
+
+
+```{r}
+# two sample t -test
+t.test(x,y)
+```
+
+
+```{r}
+ttest = t.test(x,y)
+names(ttest)
+```
+
+
+```{r}
+#The one-sample T-test can be implemented as follows:
+t.test(x, mu = 5)
+```
+
+The choices you have are between ″two.sided″, ″less″, or ″greater″, and the choice can be abbreviated, as shown in the following command:
+```{r}
+t.test(y, mu = 5, alternative = 'greater')
+```
+
+
+```{r}
+t.test(y, mu = 5, alternative = 'less')
+```
+
+
+```{r}
+t.test(y, mu = 5, alternative = 'two.sided')
+```
+```{r}
+binom.test( x=62, n=100, p=.5 )
+```
+# **Hypothesis testing example**
+
+```{r}
+library(tidyverse)
+#install.packages("NHANES")
+library(NHANES)
+NHANES
+```
+
+```{r}
+set.seed(2) # force R to take the same "random" sample every time the code runs!
+sam_NHANES = NHANES %>%
+  filter(!is.na(BPSysAve)) %>% # only include people who *have* BP measurements
+  slice_sample(n = 250, replace = FALSE)
+sam_NHANES
+```
+
+
+```{r}
+sam_NHANES %>%
+  ggplot() +
+  geom_histogram(aes(x = BPSysAve), bins = 20)
+```
+
+
+```{r}
+sam_NHANES %>%
+  ggplot(aes(sample = BPSysAve)) + # specifying aes() here means *all* the later commands will use it
+  stat_qq() +
+  stat_qq_line()
+```
+Again, not so great. QQ plots always look a bit funky out at the tails, but a big curve like this is a definite indication of non-Normality.
+
+You may recall that one way of dealing with this is to try a transformation on the data. We’ll see this again in the future, but for now, I’ll try taking the log of the values:
+```{r}
+sam_NHANES = sam_NHANES %>% mutate("logBPSysAve" = log(BPSysAve))
+
+sam_NHANES %>%
+  ggplot() +
+  geom_histogram(aes(x = logBPSysAve), bins = 20)
+
+sam_NHANES %>%
+  ggplot(aes(sample = logBPSysAve)) +
+  stat_qq() +
+  stat_qq_line()
+```
+
+
+```{r}
+sam_ybar = sam_NHANES$logBPSysAve %>% mean(na.rm = TRUE) # remove NAs
+sam_s = sam_NHANES$logBPSysAve %>% sd(na.rm = TRUE) # sd value
+sam_t = (sam_ybar - log(120)) / (sam_s/sqrt(250)) # t valuue
+sam_ybar  # ln base e - very important
+sam_s
+sam_t
+```
+
+
+```{r}
+p_val = 2*(pt(sam_t, df = 250-1, lower.tail = TRUE))
+p_val
+```
+
+
+```{r}
+my_ttest = t.test(x = sam_NHANES$logBPSysAve, alternative = "two.sided",
+       mu = log(120), conf.level = 0.99)
+```
+# ***Chapter 13 Comparing two means**
+# **13.1 The one-sample  z -test**
+
+To introduce the idea behind the  z -test, let’s use a simple example. A friend of mine, Dr Zeppo, grades his introductory statistics class on a curve. Let’s suppose that the average grade in his class is 67.5, and the standard deviation is 9.5. Of his many hundreds of students, it turns out that 20 of them also take psychology classes. Out of curiosity, I find myself wondering: do the psychology students tend to get the same grades as everyone else (i.e., mean 67.5) or do they tend to score higher or lower? He emails me the zeppo.Rdata file, which I use to pull up the grades of those students,
+```{r}
+load( file.path("~/Data_science/R_studio/Git/rbook/bookdown/data/zeppo.Rdata" )) 
+print( grades )
+```
+
+
+```{r}
+mean( grades )
+```
+$$
+\begin{array}{ll}
+H_0: & \mu = 67.5 \\
+H_1: & \mu \neq 67.5
+\end{array}
+$$
+$$
+X \sim \mbox{Normal}(\mu_0,\sigma^2)
+$$
+
+$$
+\mbox{SE}({\bar{X}}) = \frac{\sigma}{\sqrt{N}}
+$$
+$$
+\bar{X} \sim \mbox{Normal}(\mu_0,\mbox{SE}({\bar{X}}))
+$$
+$$
+z_{\bar{X}} = \frac{\bar{X} - \mu_0}{\mbox{SE}({\bar{X}})}
+$$
+or, equivalently
+$$
+z_{\bar{X}} =  \frac{\bar{X} - \mu_0}{\sigma / \sqrt{N}}
+$$
+This $z$-score is our test statistic. The nice thing about using this as our test statistic is that like all $z$-scores, it has a standard normal distribution:
+$$
+z_{\bar{X}} \sim \mbox{Normal}(0,1)
+$$
+
+```{r}
+sample.mean <- mean( grades )
+print( sample.mean )
+```
+Then, I create variables corresponding to known population standard deviation ($\sigma = 9.5$), and the value of the population mean that the null hypothesis specifies ($\mu_0 = 67.5$):
+
+```{r}
+mu.null <- 67.5
+sd.true <- 9.5
+```
+
+
+```{r}
+N <- length( grades )
+print( N )
+```
+
+
+```{r}
+sem.true <- sd.true / sqrt(N)
+print(sem.true)
+```
+
+```{r}
+z.score <- (sample.mean - mu.null) / sem.true
+print( z.score )
+```
+
+
+```{r}
+upper.area <- pnorm( q = z.score, lower.tail = FALSE )
+print( upper.area )
+```
+
+```{r}
+lower.area <- pnorm( q = -z.score, lower.tail = TRUE )
+print( lower.area )
+```
+Thus we get our  p-value:
+
+```{r}
+p.value <- lower.area + upper.area
+print( p.value )
+```
+# **13.2 The one-sample  t -test**
+$$
+t = \frac{\bar{X} - \mu}{\hat{\sigma}/\sqrt{N} }
+$$
+```{r}
+library(lsr)
+grades
+oneSampleTTest( x=grades, mu=67.5 )
+```
+
+#**13.3 The independent samples  t-test (Student test)**
+```{r}
+load (file.path("~/Data_science/R_studio/Git/rbook/bookdown/data/harpo.Rdata"))
+str(harpo)
+```
+
+
+```{r}
+head( harpo )
+```
+$$
+\begin{array}{ll}
+H_0: & \mu_1 = \mu_2  \\
+H_1: & \mu_1 \neq \mu_2
+\end{array}
+$$
+$$
+\bar{X}_1 - \bar{X}_2
+$$
+to be *pretty close* to zero. However, just like we saw with our one-sample tests (i.e., the one-sample $z$-test and the one-sample $t$-test) we have to be precise about exactly *how close* to zero this difference should be. And the solution to the problem is more or less the same one: we calculate a standard error estimate (SE), just like last time, and then divide the difference between means by this estimate. So our **_$t$-statistic_** will be of the form
+$$
+t = \frac{\bar{X}_1 - \bar{X}_2}{\mbox{SE}}
+$$
+13.3.3 A “pooled estimate” of the standard deviation
+$$
+\begin{array}{rcl}
+w_1 &=& N_1 - 1\\
+w_2 &=& N_2 - 1
+\end{array}
+$$
+Now that we've assigned weights to each sample, we calculate the pooled estimate of the variance by taking the weighted average of the two variance estimates, ${\hat\sigma_1}^2$ and ${\hat\sigma_2}^2$ 
+$$
+\hat\sigma^2_p = \frac{w_1 {\hat\sigma_1}^2 + w_2 {\hat\sigma_2}^2}{w_1 + w_2}
+$$
+Finally, we convert the pooled variance estimate to a pooled standard deviation estimate, by taking the square root. This gives us the following formula for $\hat\sigma_p$,
+$$
+\hat\sigma_p = \sqrt{\frac{w_1 {\hat\sigma_1}^2 + w_2 {\hat\sigma_2}^2}{w_1 + w_2}}
+$$
+13.3.4 The same pooled estimate, described differently
+$$
+X_{ik} - \bar{X}_k
+$$
+So why not just use these deviations (i.e., the extent to which each student's grade differs from the mean grade in their tutorial?) Remember, a variance is just the average of a bunch of squared deviations, so let's do that. Mathematically, we could write it like this:
+$$
+\frac{\sum_{ik} \left( X_{ik} - \bar{X}_k \right)^2}{N}
+$$
+where the notation "$\sum_{ik}$" is a lazy way of saying "calculate a sum by looking at all students in all tutorials", since each "$ik$" corresponds to one student.^[A more correct notation will be introduced in Chapter \@ref(anova).] But, as we saw in Chapter \@ref(estimation), calculating the variance by dividing by $N$ produces a biased estimate of the population variance. And previously, we needed to divide by $N-1$ to fix this. However, as I mentioned at the time, the reason why this bias exists is because the variance estimate relies on the sample mean; and to the extent that the sample mean isn't equal to the population mean, it can systematically bias our estimate of the variance. But this time we're relying on *two* sample means! Does this mean that we've got more bias? Yes, yes it does. And does this mean we now need to divide by $N-2$ instead of $N-1$, in order to calculate our pooled variance estimate? Why, yes...
+$$
+\hat\sigma^2_p = \frac{\sum_{ik} \left( X_{ik} - \bar{X}_k \right)^2}{N -2}
+$$
+13.3.5 Completing the test
+$$
+\mbox{SE}({\bar{X}_1 - \bar{X}_2}) = \hat\sigma \sqrt{\frac{1}{N_1} + \frac{1}{N_2}}
+$$
+and our $t$-statistic is therefore 
+$$
+t = \frac{\bar{X}_1 - \bar{X}_2}{\mbox{SE}({\bar{X}_1 - \bar{X}_2})}
+$$
+```{r}
+head( harpo )
+```
+
+```{r}
+independentSamplesTTest( 
+      formula = grade ~ tutor,  # formula specifying outcome and group variables
+      data = harpo,             # data frame that contains the variables
+      var.equal = TRUE          # assume that the two groups have the same variance
+  )
+```
+#**13.4 The independent samples  t -test (Welch test)**
+The biggest problem with using the Student test in practice is the third assumption listed in the previous section: it assumes that both groups have the same standard deviation. This is rarely true in real life: if two samples don’t have the same means, why should we expect them to have the same standard deviation? 
+
+$$
+t = \frac{\bar{X}_1 - \bar{X}_2}{\mbox{SE}({\bar{X}_1 - \bar{X}_2})}
+$$
+The main difference is that the standard error calculations are different. If the two populations have different standard deviations, then it's a complete nonsense to try to calculate a pooled standard deviation estimate, because you're averaging apples and oranges.^[Well, I guess you can average apples and oranges, and what you end up with is a delicious fruit smoothie. But no one really thinks that a fruit smoothie is a very good way to describe the original fruits, do they?] But you can still estimate the standard error of the difference between sample means; it just ends up looking different:
+$$
+\mbox{SE}({\bar{X}_1 - \bar{X}_2}) = \sqrt{ \frac{{\hat{\sigma}_1}^2}{N_1} + \frac{{\hat{\sigma}_2}^2}{N_2} }
+$$
+The reason why it's calculated this way is beyond the scope of this book. What matters for our purposes is that the $t$-statistic that comes out of the Welch test is actually somewhat different to the one that comes from the Student test. 
+The second difference between Welch and Student is that the degrees of freedom are calculated in a very different way. In the Welch test, the "degrees of freedom " doesn't have to be a whole number any more, and it doesn't correspond all that closely to the "number of data points minus the number of constraints" heuristic that I've been using up to this point. The degrees of freedom are, in fact...
+$$
+\mbox{df} = \frac{ ({\hat{\sigma}_1}^2 / N_1 + {\hat{\sigma}_2}^2 / N_2)^2 }{  ({\hat{\sigma}_1}^2 / N_1)^2 / (N_1 -1 )  + ({\hat{\sigma}_2}^2 / N_2)^2 / (N_2 -1 ) } 
+$$
+```{r}
+load (file.path("~/Data_science/R_studio/Git/rbook/bookdown/data/harpo.Rdata"))
+str(harpo)
+```
+
+```{r}
+independentSamplesTTest( 
+      formula = grade ~ tutor,  # formula specifying outcome and group variables
+      data = harpo              # data frame that contains the variables
+  )
+```
+#**13.5 The paired-samples t-test**
+The data set that we'll use this time comes from Dr Chico's class.^[At this point we have Drs Harpo, Chico and Zeppo. No prizes for guessing who Dr Groucho is.] In her class, students take two major tests, one early in the semester and one later in the semester. To hear her tell it, she runs a very hard class, one that most students find very challenging; but she argues that by setting hard assessments, students are encouraged to work harder. Her theory is that the first test is a bit of a "wake up call" for students: when they realise how hard her class really is, they'll work harder for the second test and get a better mark. Is she right? To test this, let's have a look at the `chico.Rdata` file: 
+```{r}
+load( file.path( "~/Data_science/R_studio/Git/rbook/bookdown/data/chico.Rdata" ))
+str(chico) 
+```
+
+
+```{r}
+head( chico )
+```
+```{r}
+library( psych )
+describe( chico )
+```
+
+
+```{r}
+chico$improvement <- chico$grade_test2 - chico$grade_test1 
+head( chico )
+```
+
+
+```{r}
+ciMean( x = chico$improvement )
+```
+$$
+D_{i} = X_{i1} - X_{i2} 
+$$
+Notice that the difference scores is *variable 1 minus variable 2* and not the other way around, so if we want improvement to correspond to a positive valued difference, we actually want "test 2" to be our "variable 1". Equally, we would say that $\mu_D = \mu_1 - \mu_2$ is the population mean for this difference variable. So, to convert this to a hypothesis test, our null hypothesis is that this mean difference is zero; the alternative hypothesis is that it is not:
+$$
+\begin{array}{ll}
+H_0: & \mu_D = 0  \\
+H_1: & \mu_D \neq 0
+\end{array}
+$$
+(this is assuming we're talking about a two-sided test here). This is more or less identical to the way we described the hypotheses for the one-sample $t$-test: the only difference is that the specific value that the null hypothesis predicts is 0. And so our $t$-statistic is defined in more or less the same way too. If we let $\bar{D}$ denote the mean of the difference scores, then 
+$$
+t = \frac{\bar{D}}{\mbox{SE}({\bar{D}})}
+$$
+#13.5.3 Doing the test in R, part 1
+```{r}
+chico$improvement
+oneSampleTTest( chico$improvement, mu=0 )
+```
+
+
+```{r}
+pairedSamplesTTest( 
+     formula = ~ grade_test2 + grade_test1, # one-sided formula listing the two variables
+     data = chico                           # data frame containing the two variables 
+  )
+```
+#13.5.4 Doing the test in R, part 2
+
+```{r}
+chico2 <- wideToLong( chico, within="time" )
+head( chico2 )
+```
+
+```{r}
+str(chico2)
+```
+
+```{r}
+chico2 <- sortFrame( chico2, id )
+head( chico2 )
+```
+
+
+```{r}
+pairedSamplesTTest( 
+     formula = grade ~ time,  # two sided formula: outcome ~ group
+     data = chico2,           # data frame
+     id = "id"                # name of the id variable
+  )
+```
+```{r}
+pairedSamplesTTest( 
+     formula = grade ~ time + (id),
+     data = chico2
+  )
+# pairedSamplesTTest( grade ~ time + (id), chico2 )
+```
+#**13.6 One sided tests**
+
+```{r}
+grades
+oneSampleTTest( x=grades, mu=67.5, one.sided="greater" )
+```
+
+```{r}
+harpo
+```
+So that's how to do a one-sided one sample $t$-test. However, all versions of the $t$-test can be one-sided. For an independent samples $t$ test, you could have a one-sided test if you're only interestd in testing to see if group A has *higher* scores than group B, but have no interest in finding out if group B has higher scores than group A. Let's suppose that, for Dr Harpo's class, you wanted to see if Anastasia's students had higher grades than Bernadette's. The `independentSamplesTTest()` function lets you do this, again by specifying the `one.sided` argument. However, this time around you need to specify the name of the group that you're expecting to have the higher score. In our case, we'd write `one.sided = "Anastasia"`. So the command would be:
+```{r}
+independentSamplesTTest( 
+    formula = grade ~ tutor, 
+    data = harpo, 
+    one.sided = "Anastasia"
+  )
+```
+
+```{r}
+chico
+```
+
+```{r}
+pairedSamplesTTest( 
+     formula = ~ grade_test2 + grade_test1, 
+     data = chico, 
+     one.sided = "grade_test2" 
+  )
+```
+```{r}
+pairedSamplesTTest( 
+    formula = grade ~ time, 
+    data = chico2, 
+    id = "id", 
+    one.sided = "test2" 
+  )
+
+pairedSamplesTTest( 
+    formula = grade ~ time + (id), 
+    data = chico2, 
+    one.sided = "test2" 
+  )
+```
+#**13.7 Using the t.test() function - for summary t test in short form**
+
+```{r}
+t.test( x = grades, mu = 67.5 )
+```
+
+
+```{r}
+t.test( formula = grade ~ tutor, data = harpo )
+```
+
+
+```{r}
+t.test( x = chico$grade_test2,   # variable 1 is the "test2" scores
+         y = chico$grade_test1,   # variable 2 is the "test1" scores
+         paired = TRUE           # paired test
+ )
+```
+#**13.8 Effect size (for t test function only)**
+The most commonly used measure of effect size for a $t$-test is **_Cohen's $d$_** [@Cohen1988]. It's a very simple measure in principle, with quite a few wrinkles when you start digging into the details. Cohen himself defined it primarily in the context of an independent samples $t$-test, specifically the Student test. In that context, a natural way of defining the effect size is to divide the difference between the means by an estimate of the standard deviation. In other words, we're looking to calculate *something* along the lines of this:
+
+$$
+d = \frac{\mbox{(mean 1)} - \mbox{(mean 2)}}{\mbox{std dev}}
+$$
+d-value	rough interpretation
+about 0.2	small effect
+about 0.5	moderate effect
+about 0.8	large effect
+
+### Cohen's $d$ from one sample
+
+The simplest situation to consider is the one corresponding to a one-sample $t$-test. In this case, the one sample mean $\bar{X}$ and one (hypothesised) population mean $\mu_o$ to compare it to. Not only that, there's really only one sensible way to estimate the population standard deviation: we just use our usual estimate $\hat{\sigma}$. Therefore, we end up with the following as the only way to calculate $d$, 
+$$
+d = \frac{\bar{X} - \mu_0}{\hat{\sigma}}
+$$
+When writing the `cohensD()` function, I've made some attempt to make it work in a similar way to `t.test()`. As a consequence, `cohensD()` can calculate your effect size regardless of which type of $t$-test you performed. If what you want is a measure of Cohen's $d$ to accompany a one-sample $t$-test, there's only two arguments that you need to care about. These are:
+
+- `x`. A numeric vector containing the sample data.
+- `mu`. The mean against which the mean of `x` is compared (default value is `mu = 0`).
+
+```{r}
+grades
+cohensD( x = grades,    # data are stored in the grades vector
+          mu = 67.5      # compare students to a mean of 67.5
+ )
+```
+Yep, same number. Overall, then, the psychology students in Dr Zeppo's class are achieving grades (mean = 72.3\%) that are about .5 standard deviations higher than the level that you'd expect (67.5\%) if they were performing at the same level as other students. Judged against Cohen's rough guide, this is a moderate effect size.
+
+### Cohen's $d$ from a Student $t$ test
+
+The majority of discussions of Cohen's $d$ focus on a situation that is analogous to Student's independent samples $t$ test, and it's in this context that the story becomes messier, since there are several different versions of $d$ that you might want to use in this situation, and you can use the `method` argument to the `cohensD()` function to pick the one you want. To understand why there are multiple versions of $d$, it helps to take the time to write down a formula that corresponds to the true population effect size $\delta$. It's pretty straightforward, 
+$$
+\delta = \frac{\mu_1 - \mu_2}{\sigma}
+$$
+where, as usual, $\mu_1$ and $\mu_2$ are the population means corresponding to group 1 and group 2 respectively, and $\sigma$ is the standard deviation (the same for both populations). The obvious way to estimate $\delta$ is to do exactly the same thing that we did in the $t$-test itself: use the sample means as the top line, and a pooled standard deviation estimate for the bottom line:
+$$
+d = \frac{\bar{X}_1 - \bar{X}_2}{\hat{\sigma}_p}
+$$
+```{r}
+
+cohensD( formula = grade ~ tutor,  # outcome ~ group
+          data = harpo,             # data frame 
+          method = "pooled"         # which version to calculate?
+)
+```
+### Cohen's $d$ from a Welch test
+
+Suppose the situation you're in is more like the Welch test: you still have two independent samples, but you no longer believe that the corresponding populations have equal variances. When this happens, we have to redefine what we mean by the population effect size. I'll refer to this new measure as $\delta^\prime$, so as to keep it distinct from the measure $\delta$ which we defined previously. What @Cohen1988 suggests is that we could define our new population effect size by averaging the two population variances. What this means is that we get:
+$$
+\delta^\prime = \frac{\mu_1 - \mu_2}{\sigma^\prime}
+$$
+where 
+$$
+\sigma^\prime = \sqrt{\displaystyle{\frac{ {\sigma_1}^2 + {\sigma_2}^2}{2}}}
+$$
+$$
+d = \frac{\bar{X}_1 - \bar{X}_2}{\sqrt{\displaystyle{\frac{ {\hat\sigma_1}^2 + {\hat\sigma_2}^2}{2}}}}
+$$
+```{r}
+cohensD( formula = grade ~ tutor, 
+          data = harpo,
+          method = "unequal" 
+ )
+```
+### Cohen's $d$ from a paired-samples test
+
+
+Finally, what should we do for a paired samples $t$-test? In this case, the answer depends on what it is you're trying to do. *If* you want to measure your effect sizes relative to the distribution of difference scores, the measure of $d$ that you calculate is just (`method = "paired"`)
+$$
+d = \frac{\bar{D}}{\hat{\sigma}_D}
+$$
+where $\hat{\sigma}_D$ is the estimate of the standard deviation of the differences. The calculation here is pretty straightforward
+```{r}
+cohensD( x = chico$grade_test2, 
+          y = chico$grade_test1,
+          method = "paired" 
+ )
+```
+
+
+```{r}
+cohensD( x = chico$grade_test2, 
+          y = chico$grade_test1,
+          method = "pooled" 
+ )
+```
+#**13.9 Checking the normality of a sample**
+
+```{r}
+normal.data <- rnorm( n = 100 )  # generate N = 100 normally distributed numbers
+hist( x = normal.data )          # draw a histogram of these numbers
+```
+
+
+```{r}
+qqnorm( y = normal.data )        # draw the QQ plot
+```
+#13.9.2 Shapiro-Wilk tests
+```{r}
+shapiro.test( x = normal.data )
+```
+If your data are non-normal, you can use Wilcoxon tests instead of  t-tests. (Section 13.10)
+#**13.10 Testing non-normal data with Wilcoxon tests**
+#**13.10.1 Two sample Wilcoxon test**
+
+```{r}
+load(file.path( "~/Data_science/R_studio/Git/rbook/bookdown/data/awesome.Rdata"))
+print( awesome )
+```
+
+
+```{r}
+wilcox.test( formula = scores ~ group, data = awesome)
+```
+
+
+```{r}
+load(file.path( "~/Data_science/R_studio/Git/rbook/bookdown/data/awesome2.Rdata"))
+score.A
+score.B
+```
+
+
+```{r}
+wilcox.test( x = score.A, y = score.B )
+```
+#**13.10.2 One sample Wilcoxon test**
+```{r}
+load( file.path( "~/Data_science/R_studio/Git/rbook/bookdown/data/happy.Rdata" ))
+print( happiness )
+```
+
+
+```{r}
+wilcox.test( x = happiness$change,
+              mu = 0
+)
+```
+
+```{r}
+wilcox.test( x = happiness$after,
+              y = happiness$before,
+              paired = TRUE 
+)
+```
+```{r}
+```
+
+
+#**12. Categorical data analysis**
+
+```{r}
+library(lsr)
+load("~/Data_science/R_studio/Git/rbook/bookdown/data/randomness.Rdata")
+str(cards)
+```
+
+
+```{r}
+head( cards )
+```
+
+
+```{r}
+observed <- table( cards$choice_1 )
+observed
+```
+H0: All four suits are chosen with equal probability (0.25)
+H1:At least one of the suit-choice probabilities isn’t .25
+Research hypothesis: people don’t choose cards randomly
+
+```{r}
+probabilities <- c(clubs = .25, diamonds = .25, hearts = .25, spades = .25) 
+probabilities
+```
+
+
+```{r}
+N <- 200  # sample size
+expected <- N * probabilities # expected frequencies
+expected
+```
+```{r}
+observed - expected
+```
+
+
+```{r}
+(observed - expected)^2
+```
+
+
+```{r}
+(observed - expected)^2 / expected
+```
+
+
+```{r}
+q=sum( (observed - expected)^2 / expected ) # q
+q
+```
+$$
+X^2 = \sum_{i=1}^k \frac{(O_i - E_i)^2}{E_i}
+$$ 
+ calculate the 95th percentile of a chi-squared distribution with  k−1 degrees of freedom
+```{r}
+qchisq( p = .95, df = 3 )
+```
+
+So if our  X2 statistic is bigger than 7.81 or so, then we can reject the null hypothesis. Since we actually calculated that before (i.e.,  X2=8.44) we can reject the null. If we want an exact  p -value, we can calculate it using the pchisq() function:
+```{r}
+pchisq( q = 8.44, df = 3, lower.tail = FALSE )
+```
+
+ it’s usually easier to calculate the  p-value this way:
+```{r}
+1-pchisq( q = 8.44, df = 3 )
+```
+So, in this case we would reject the null hypothesis, since  p<.05 . And that’s it, basically. You now know “Pearson’s  χ2 test for the goodness of fit”. Lucky you.
+
+```{r}
+# One line code for all stuff above
+goodnessOfFitTest( cards$choice_1 )
+```
+12.1.8 Specifying a different null hypothesis
+
+```{r}
+nullProbs <- c(clubs = .2, diamonds = .3, hearts = .3, spades = .2)
+nullProbs
+```
+
+
+```{r}
+goodnessOfFitTest( x = cards$choice_1, p = nullProbs )
+```
+
+12.2 The  χ2 test of independence (or association)
+```{r}
+load( file.path("~/Data_science/R_studio/Git/rbook/bookdown/data/chapek9.Rdata" ))
+str(chapek9)
+```
+
+
+```{r}
+head(chapek9)
+```
+
+
+```{r}
+summary(chapek9)
+```
+
+
+```{r}
+chapekFrequencies <- xtabs( ~ choice + species, data = chapek9)
+chapekFrequencies
+```
+
+
+```{r}
+xtabs( formula = ~choice+species, data = chapek9 )
+```
+
+
+```{r}
+associationTest( formula = ~choice+species, data = chapek9 )
+```
+#12.6 The most typical way to do chi-square tests in R
+```{r}
+observed
+```
+
+```{r}
+chisq.test( x = observed )
+```
+
+
+```{r}
+chisq.test( x = observed, p = c(.2, .3, .3, .2) )
+```
+
+
+```{r}
+chisq.test( chapekFrequencies )
+```
+#12.7 The Fisher exact test
+
+```{r}
+load( file.path("~/Data_science/R_studio/Git/rbook/bookdown/data/salem.Rdata"))
+trial
+salem.tabs <- table( trial )
+print( salem.tabs )
+```
+
+```{r}
+chisq.test( salem.tabs )
+```
+
+```{r}
+fisher.test( salem.tabs )
+```
+#**ONE WAY ANOVA**
+
+Suppose you've become involved in a clinical trial in which you are testing a new antidepressant drug called *Joyzepam*. In order to construct a fair test of the drug's effectiveness, the study involves three separate drugs to be administered. One is a placebo, and the other is an existing antidepressant / anti-anxiety drug called *Anxifree*. A collection of 18 participants with moderate to severe depression are recruited for your initial testing. Because the drugs are sometimes administered in conjunction with psychological therapy, your study includes 9 people undergoing cognitive behavioural therapy (CBT) and 9 who are not. Participants are randomly assigned (doubly blinded, of course) a treatment, such that there are 3 CBT people and 3 no-therapy people assigned to each of the 3 drugs. A psychologist assesses the mood of each person after a 3 month run with each drug: and the overall *improvement* in each person's mood is assessed on a scale ranging from $-5$ to $+5$. 
+```{r}
+load(file.path( "~/Data_science/R_studio/Git/rbook/bookdown/data/clinicaltrial.Rdata")) # load data
+str(clin.trial)       
+```
+placebo: giả dược
+Anxifree: thuốc chống trầm cảm đang có trên thị trường
+Joyzepam: thuốc mới đang xài
+
+```{r}
+print( clin.trial )
+```
+
+
+```{r}
+xtabs( ~drug, clin.trial )
+```
+
+
+```{r}
+aggregate( mood.gain ~ drug, clin.trial, mean )
+```
+
+
+```{r}
+aggregate( mood.gain ~ drug, clin.trial, sd )
+```
+
+
+```{r}
+library(gplots)
+plotmeans(  formula = mood.gain ~ drug,  # plot mood.gain by drug
+             data = clin.trial,           # the data frame
+             xlab = "Drug Administered",  # x-axis label
+             ylab = "Mood Gain",          # y-axis label
+             n.label = FALSE              # don't display sample size
+ )
+```
+$$
+\begin{array}{rcl}
+H_0 &:& \mbox{it is true that } \mu_P = \mu_A = \mu_J
+\end{array}
+$$
+As a consequence, our alternative hypothesis is that at least one of the three different treatments is different from the others. It's a little trickier to write this mathematically, because (as we'll discuss) there are quite a few different ways in which the null hypothesis can be false. So for now we'll just write the alternative hypothesis like this:
+$$
+\begin{array}{rcl}
+H_1 &:& \mbox{it is *not* true that } \mu_P = \mu_A = \mu_J
+\end{array}
+$$
+
+```{r}
+outcome <- clin.trial$mood.gain
+group <- clin.trial$drug
+gp.means <- tapply(outcome,group,mean)
+gp.means <- gp.means[group]
+dev.from.gp.means <- outcome - gp.means
+squared.devs <- dev.from.gp.means ^2
+```
+
+
+```{r}
+Y <- data.frame( group, outcome, gp.means,
+                  dev.from.gp.means, squared.devs )
+print(Y, digits = 2)
+```
+
+
+```{r}
+SSw <- sum( squared.devs )
+print( SSw )
+```
+
+
+```{r}
+gp.means <- tapply(outcome,group,mean)
+grand.mean <- mean(outcome)
+dev.from.grand.mean <- gp.means - grand.mean
+squared.devs <- dev.from.grand.mean ^2
+gp.sizes <- tapply(outcome,group,length)
+wt.squared.devs <- gp.sizes * squared.devs
+```
+
+
+```{r}
+Y <- data.frame( gp.means, grand.mean, dev.from.grand.mean, 
+                  squared.devs, gp.sizes, wt.squared.devs )
+print(Y, digits = 2)
+```
+
+```{r}
+SSb <- sum( wt.squared.devs )
+print( SSb )
+pf( 18.6, df1 = 2, df2 = 15, lower.tail = FALSE)
+```
+#**14.3 Running an ANOVA in R**
+
+```{r}
+#aov( formula = mood.gain ~ drug, data = clin.trial ) 
+my.anova <- aov( mood.gain ~ drug, clin.trial ) 
+my.anova 
+```
+
+
+```{r}
+class( my.anova )
+names( my.anova )
+```
+
+
+```{r}
+print( my.anova )
+```
+
+#**14.3.3 Running the hypothesis tests for the ANOVA**
+```{r}
+summary( my.anova )
+```
+#14.4 **Effect size**
+```{r}
+SStot <- SSb + SSw          # total sums of squares
+eta.squared <- SSb / SStot  # eta-squared value
+print( eta.squared )
+```
+
+```{r}
+etaSquared( x = my.anova )
+```
+
+#14.5**Multiple comparisons and post hoc tests**
+#14.5.1 Running “pairwise”  t-tests
+```{r}
+t.test( formula = mood.gain ~ drug, 
+       data = clin.trial, 
+       subset = drug %in% c("placebo","anxifree"), 
+       var.equal = TRUE 
+)
+```
+
+
+```{r}
+ pairwise.t.test( x = clin.trial$mood.gain,   # outcome variable
+                  g = clin.trial$drug,        # grouping variable
+                  p.adjust.method = "none"    # which correction to use?
+ )
+```
+
+
+```{r}
+posthocPairwiseT( x = my.anova, p.adjust.method = "none" )
+```
+
+```{r}
+posthocPairwiseT( my.anova )
+```
+#**14.5.2 Corrections for multiple testing**
+#14.5.3 Bonferroni corrections
+
+```{r}
+posthocPairwiseT( my.anova, p.adjust.method = "bonferroni")
+```
+#14.5.4 Holm corrections
+
+```{r}
+posthocPairwiseT( my.anova ) #default is holm
+```
+#**14.7.1 Running the Levene’s test in R**
+
+```{r}
+library( car )
+leveneTest( my.anova )
+```
+
+
+```{r}
+leveneTest(y = mood.gain ~ drug, data = clin.trial)   # y is a formula in this case
+leveneTest(y = clin.trial$mood.gain, group = clin.trial$drug)   # y is the outcome  
+```
+
+
+```{r}
+Y <- clin.trial $ mood.gain    # the original outcome variable, Y
+G <- clin.trial $ drug         # the grouping variable, G
+gp.mean <- tapply(Y, G, mean)  # calculate group means
+Ybar <- gp.mean[G]             # group mean associated with each obs
+Z <- abs(Y - Ybar)             # the transformed variable, Z
+summary( aov(Z ~ G) )          # run the ANOVA 
+```
+#**14.8 Removing the homogeneity of variance assumption**
+```{r}
+oneway.test(mood.gain ~ drug, data = clin.trial)
+```
+
+
+```{r}
+oneway.test(mood.gain ~ drug, data = clin.trial, var.equal = TRUE)
+```
+#14.9 Checking the normality assumption
+```{r}
+my.anova.residuals <- residuals( object = my.anova )   # extract the residuals
+```
+
+
+```{r}
+hist( x = my.anova.residuals )  
+```
+
+
+```{r}
+qqnorm( y = my.anova.residuals )         # draw a QQ plot (similar to Figure @ref{fig:normalityanova}b)
+```
+
+
+```{r}
+shapiro.test( x = my.anova.residuals )   # run Shapiro-Wilk test
+```
+
+#14.10.3 How to run the Kruskal-Wallis test in R
+```{r}
+```
+#14.11 On the relationship between ANOVA and the Student  t test
+
+#**ANOVA from STAT 202**
+
+```{r}
+library(tidyverse)
+mean_weights = ChickWeight %>% filter(Time == 20) %>%
+  group_by(Diet) %>%
+  summarize(avgWeight = mean(weight))
+mean_weights
+```
+
+
+```{r}
+chicken_dat = ChickWeight %>% filter(Time == 20)
+chicken_lm = lm(weight~Diet, data = chicken_dat)
+chicken_fit = chicken_lm %>% anova()
+chicken_fit
+```
+
+
+```{r}
+chicken_resids = data.frame(
+  "residuals" = chicken_lm$residuals,
+  "predicted" = chicken_lm$fitted.values
+)
+chicken_resids %>%
+  ggplot() +
+  geom_histogram(aes(x = residuals), bins=15)
+```
+
+
+```{r}
+chicken_resids %>%
+  ggplot(aes(sample = residuals)) +
+  stat_qq() +
+  stat_qq_line()
+```
+
+
+```{r}
+chicken_dat %>%
+  ggplot() +
+  geom_boxplot(aes(x = Diet, y = weight))
+```
+
+
+```{r}
+chicken_resids %>%
+  ggplot() +
+  geom_point(aes(x = predicted, y = residuals))
+```
+
+
+```{r}
+t.test(x = chicken_dat %>% filter(Diet == 1) %>% .$weight,
+       y = chicken_dat %>% filter(Diet == 4) %>% .$weight,
+       paired = FALSE,
+       conf.level = 0.99)
+```
+#**8.5.2 Tukey’s HSD**
+
+```{r}
+chicken_aov = aov(weight ~ Diet, data = chicken_dat)
+TukeyHSD(x = chicken_aov, ordered = FALSE, conf.level = 0.95)
+```
+
+
+```{r}
+chicken_dat %>%
+  ggplot() +
+  geom_boxplot(aes(x = Diet, y = weight))
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
