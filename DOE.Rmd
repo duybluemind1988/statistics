@@ -79,6 +79,7 @@ p <- ggplot(prinEf, aes(x = Level, y = Score)) + geom_point() + geom_line() +geo
                                                                                         color = "blue")+scale_x_continuous(breaks = c(-1, 1)) + facet_grid(. ~ Factor)+ggtitle("Plot of Factor Effects")
 print(p)
 ```
+The effect of flour is positive while the effect of baking powder is negative.
 
 The interaction plot is as shown below.The lines don’t cross means that there is no interaction between the factors plotted.
 
@@ -94,55 +95,282 @@ The normality of residual can be checked with Shapiro test. As the p-value is la
 shapiro.test(residuals(doe.model2))
 ```
 
+# Package r qualitytools
+http://www.r-qualitytools.org/IMPROVE.html
 ```{r}
+#install.packages("qualityTools")
+library(qualityTools)
+```
+
+Suppose a process has 5 factors A, B, C, D and E. The yield (i. e. response) of the process is measured in percent. Three of the five factors are assumed by the engineers to be relevant to the yield of the process. These three factors are to be named Factor 1, Factor 2 and Factor 3 (A, B and C). The (unknown relations of the factors of the) process are simulated by the method simProc of the qualityTools package. Factor 1 is to be varied from 80 to 120, factor B from 120 to 140 and factor C from 1 to 2 . Low factor settings are assigned a -1 and high values a +1.
+
+## 2^k Factorial Designs
+```{r}
+set.seed(1234)
+fdo = facDesign(k = 3, centerCube = 4) #fdo - factorial design object
+```
+k : numeric value giving the number of factors. By default k is set to ‘3’.
+returns a full factorial design with 3 factors combination and 4 center points
+
+```{r}
+set.seed(1234)
+names(fdo) = c("Factor 1", "Factor 2", "Factor 3") #optional
+lows(fdo) = c(80, 120, 1) #optional
+highs(fdo) = c(120, 140, 2) #optional
+summary(fdo) #information about the factorial design
+```
+centerCube 1--> 4 : row from 9 --> 12
+```{r}
+#set first value
+yield = simProc(x1 = 120, x2 = 140, x3 = 2)
+```
+
+Setting all the yield of this artificial black box process gives a very long line of R-Code.
+```{r}
+yield = c(simProc(120, 140, 1),simProc(80,140, 1),simProc(120,140, 2),
+simProc(120,120, 1),simProc(100,130, 1.5),simProc(100,130, 1.5),
+simProc(80,120, 2),simProc(100,130, 1.5), simProc(100,130, 1.5),
+simProc(120,120, 2),simProc(80,140, 2), simProc(80,120, 1))
+```
+
+Assigning the yield to the factorial design can be done using the response method.
+```{r}
+response(fdo) = yield   #assign yield to the factorial design object
+fdo
+```
+
+Analyzing this design is quite easy using the methods effectPlot, interactionPlot, lm as well as wirePlot and contourPlot:
+```{r}
+effectPlot(fdo, classic = TRUE)
 ```
 
 
 ```{r}
+interactionPlot(fdo)
+```
+The factorial design in fdo can be handed without any further operations directly to the base lm method of R.
+
+```{r}
+lm.1 = lm(yield ~ A*B*C, data = fdo)
+summary(lm.1)
+```
+The effects of A and B as well as the interaction A:B are identified to be significant. A Pareto plot of the standardized effects visualizes these findings and can be created with the paretoPlot method of the qualityTools package. Another visualization technique commonly found is a normal plot using the normalPlot method of the qualityTools package.
+
+```{r}
+par(mfrow = c(1,2))
+paretoPlot(fdo)
+normalPlot(fdo)
+```
+The relation between the factors A and B can be visualized as 3D representation in form of a wireframe or contour plot using the wirePlot and contourPlot method of the qualityTools package. Again, no further transformation of the data is needed!
+
+```{r}
+par(mfrow = c(1,2))
+wirePlot(A, B, yield, data = fdo)
+contourPlot(A, B, yield, data = fdo)
+```
+One question that arises is whether this linear fit adequately describes the process. In order to find out, one can simply compare values predicted in the center of the design (i.e. A=0, B=0 and C=0) with the values observed in the center of the design. This difference could also be tested using a specialized t-Test. For now, let’s assume this model is less wrong than others (i. e. we don’t know of any better model).
+
+## 2^(k−p)  Fractional Factorial Designs
+
+Suppose a process has 5 factors A, B, C, D and E. The yield (i. e. response) of the process is measured in percent. Three of the five factors are assumed by the engineers to be relevant to the yield of the process. These three factors are to be named Factor 1, Factor 2 and Factor 3 (A, B and C). The (unknown relations of the factors of the) process are simulated by the method simProc of the qualityTools package. Factor 1 is to be varied from 80 to 120, factor B from 120 to 140 and factor C from 1 to 2 . Low factor settings are assigned a -1 and high values a +1.
+```{r}
+fdo.frac = fracDesign(k = 3, gen = "C = AB", centerCube = 4)
+```
+In order to get more specific information about a design the summary method can be used. For this example you will see on the last part the identity I = ABC of the design. The identity I of a design is the left part of the generator multiplied by the generator. The resolution is the (character-) length of the shortest identity.
+
+```{r}
+summary(fdo.frac)
 ```
 
 
 ```{r}
+aliasTable(fdo.frac)
+```
+Fractional factorial designs can be generated by assigning the appropriate generators. However, most of the time standard fractional factorial designs known as minimum aberration designs (cite{Box05}) will be used. Such a design can be chosen from predefined tables by using the method fracChoose of the qualityTools package and simply clicking onto the desired design.
+
+```{r}
+fracChoose()
+```
+Replicated Designs and Center Points
+
+A replicated design with additional center points can be created by using the replicates and centerCube argument.
+
+```{r}
+fdo1 = facDesign(k = 3, centerCube = 2, replicates = 2)
+```
+Multiple Responses
+
+```{r}
+set.seed(1234)
+y2 = rnorm(12, mean = 20)
+response(fdo) = data.frame(yield, y2) 
+fdo
 ```
 
 
 ```{r}
+par(mfrow = c(1,2))
+wirePlot(A, B, yield, data = fdo, form = "yield~A+B+C+A*B")
+contourPlot(A, B, y2, data = fdo, form = "y2~A+B+C+A*B")
+```
+Using the wirePlot and contourPlot methods of the qualityTools package settings of the other n-2 factors can be set using the factors argument. A wireplot with the third factor C on -1 an C = 1 can be created as follows:
+
+```{r}
+par(mfrow = c(1,2))
+wirePlot(A,B,y2, data = fdo, factors = list(C=-1), form = "y2~A*B*C")
+wirePlot(A,B,y2, data = fdo, factors = list(C=1), form = "y2~A*B*C")
+```
+.... To be continue
+
+# Chapter 5 DoE for Troubleshooting and Improvement
+
+## 5.3.2 Example 1: A  2^3 Factorial in Battery Assembly
+```{r}
+# install.packages("DoE.base")
+library(DoE.base)
 ```
 
 
 ```{r}
+design<-fac.design(nlevels=c(2,2,2),replications=6,randomize=F,
+                   factor.names=list(A=c("nitrate-1", "nitrate-2"),B=c("Shim","No Shim"),
+                                     C=c("Fresh","Reused")))
+Capacitance<-c( -.1,  .6,  .6, 1.8, 1.1, 1.9,  .7, 2.1,
+                1.0,  .8, 1.0, 2.1,  .5,  .7, -.1, 2.3,
+                .6,  .7,  .8, 2.2,  .1, 2.3, 1.7, 1.9,
+                -.1, 2.0, 1.5, 1.9,  .7, 1.9, 1.2, 2.2,
+                -1.4,  .7, 1.3, 2.6, 1.3, 1.0, 1.1, 1.8,
+                .5,  .7, 1.1, 2.8, 1.0, 2.1, -.7, 2.5)
+add.response(design,Capacitance)
+```
+8 combinations of coded factor levels and the responses for 6 replicate experiments or runs conducted at each combination --> 8 x 6 = 48 run, 6 block
+
+
+The R function lm() can be used to fit the full model (Equation (5.4)) by least-squares regression analysis to the data from the experiment using the code below. Part of the output is shown below the code.
+```{r}
+mod1<-lm(Capacitance~A*B*C, data=design)
+summary(mod1)
+```
+In the output, it can be seen that factor A and B are significant as well as the two-factor interaction BC. There is a positive regression coefficient for factor A. Since this coefficient is half the effect of A=(production line or level of nitrate) it means that a higher average capacitance is expected using production line 2 where the high concentration of nitrate was used.
+
+Because there is a significant interaction of factors B and C, the main effect of factor B cannot be interpreted in the same way as the main effect for factor A. The significant interaction means the conditional effect of factor B=(Assembly line or use of a shim) is different depending on the level of factor C=(Processing station and fresh or reused hydroxide). The best way to visualize the interaction is by using an interaction plot. The R function  
+interaction.plot() is used in the section of code below to produce the interaction plot shown in Figure 5.6.
+
+```{r}
+Assembly<-design$B
+Hydroxide<-design$C
+interaction.plot(Assembly,Hydroxide,Capacitance,type="b",pch=c(1,2),col=c(1,2),data=design)
+```
+
+In this figure it can be seen that the effect of using a shim in assembly reduces the capacitance by a greater amount when fresh hydroxide at processing station 1 is used than when reused hydroxide at processing station 2 is used. However, the highest expected capacitance of the assembled batteries is predicted to occur when using fresh hydroxide and assembly line 1 where no shim was used.
+
+The assumptions required for a least-squares regression fit are that the variability in the model residuals (i.e., actual minus model predictions) should be constant across the range of predicted values, and that the residuals should be normally distributed. Four diagnostic plots for checking these assumptions can be easily made using the code below, and are shown in Figure 5.7.
+
+```{r}
+par(mfrow=c(2,2))
+plot(mod1)
+par(mfrow=c(1,1))
+```
+The plot on the left indicates the spread in the residuals is approximately equal for each of the predicted values. If the spread in the residuals increased noticeably as the fitted values increased it would indicate that a more accurate model could be obtained by transforming the response variable before using the  
+lm()
+  function see (Lawson 2015) for examples. The plot on the right is a normal probability plot of the residuals. Since the points fall basically along the diagonal straight line it indicates the normality assumption is satisfied. To understand how far from the straight line the points may lie before indicating the normality assumption is contradicted, you can make repeated normal probability plots of randomly generated data using the commands:
+```{r}
+z<-rnorm(40,0,1)
+qqnorm(z)
+```
+## 5.3.3 Example 2: Unreplicated  2^4 Factorial in Injection Molding
+
+The second example from (Durakovic 2017) illustrates the use of a 2^4 factorial, with only one replicate of each of the 16 treatment combinations. The purpose of the experiments was to improve the quality of injection-molded parts by reducing the excessive flash. This is again a common cause that makes the average flash excessive (off target). The factors that were under study and their low and high levels are shown in Table 5.3.
+
+
+```{r}
+# install.packages("FrF2")
+library(FrF2)
+design2<-FrF2(16,4,factor.names=list(A=c(10,30),B=c(1,5),C=c(12,50),D=c(100,200)),
+              randomize=F)
+Flash<-c(.22,6.18,0,5.91,6.6,6.05,6.76,8.65,0.46,5.06,0.55,4.84,11.55,9.9,9.9,9.9)
+add.response(design2,Flash)
 ```
 
 
 ```{r}
+mod2<-lm(Flash~A*B*C*D, data=design2)
+summary(mod2)
+```
+No t value, std.error and Pr (>t) because there was no replicates in this example
+
+```{r}
+coef(mod2)[-1]
+```
+daewr can be used to make a normal probability plot of the coefficients (Figure 5.8) as shown in the code below.
+```{r}
+library(daewr)
+fullnormal(coef(mod2)[-1],alpha=.10)
+```
+In this plot it can be seen that main effects A=Pack Pressure in Bar, C=Injection Speed in mm/sec, and D=Screw Speed in rpm all appear to be significant since they do not fall along the straight line of insignificant effects. All three of these significant factors have positive coefficients which, would lead one to believe that setting all three of these factors to their low levels would minimize flash and improve the quality of the injected molded parts.
+
+However, the CD interaction and the AC interaction also appear to be significant. Therefore, these two interaction plots should be studied before drawing any final conclusions. The R code to make these two interaction plots (Figures 5.9 and 5.10) is shown below.
+```{r}
+A_Pack_Pressure<-design2$A
+C_Injection_Speed<-design2$C
+D_Screw_Speed<-design2$D
+interaction.plot(A_Pack_Pressure,C_Injection_Speed,Flash,type="b",
+                 pch=c(1,2),col=c(1,2))
+interaction.plot(C_Injection_Speed,D_Screw_Speed,Flash,type="b",
+                 pch=c(1,2),col=c(1,2))
+
+```
+In Figure 5.9 it can be seen that factor A: Pack pressure only has a positive effect when factor C: Injection speed is set to its low level (12mm/sec). In Figure 5.10 it can be seen that the effect of Factor C: Injection speed is much stronger when Factor D: Screw speed is set to its high value of 200 RPM. Therefore the final recommendation was to run the injection molding machine at the low levels of Factor A (Pack Pressure=10 Bar), the low level of Factor C (Injection Speed=12 mm/sec) and the high level of Factor D (Screw Speed=200 rpm ).
+
+## 5.4 2 k-p Fractional Factorial Designs
+```{r}
+library(FrF2)
+design3<-FrF2(16,5,generators=c("ABCD"),randomize=F)
+dmod<-lm(rnorm(16)~(A*B*C*D*E),data=design3)
+aliases(dmod)
+```
+
+## 5.4.2 Example of a One-half fraction of a  2^5 Designs
+```{r}
+library(FrF2)
+DesF<-FrF2(32,factor.names=list(A="",B="",C="",D="",F="",E=""),
+           generators=list(-c(1,2,3,4,5)),randomize=FALSE)
+y<-c(10.14057,10.15061,10.15888,10.13772,10.15794,10.15545,10.15628,10.17175,
+     10.14672,10.18401,10.15383,10.14803,10.15425,10.16879,10.16728,10.16039,
+     10.12570,10.13028,10.15836,10.14300,10.13132,10.12587,10.13694,10.11500,
+     10.17273,10.16888,10.19741,10.19518,10.17892,10.16295,10.19351,10.19278)
+DesF
+```
+```{r}
+mod<-lm(y~(.)^3,data=DesF)
+aliases(mod)
+```
+
+```{r}
+summary(mod)
+```
+```{r}
+library(daewr)
+fullnormal(coef(mod)[2:32],alpha=.01,refline="FALSE")
+```
+A–kind of agalmatolite	existing	new
+B–fineness of additive	courser	finer
+C–content of waste return	0%	4%
+D–content of lime	1%	5%
+E–content of feldspar	0%	5%
+F–furnace position of tile	center	outside
+
+```{r}
+Furnace_position <- DesF$F
+Content_Lime <- DesF$D
+resp <- y
+  
+interaction.plot(Furnace_position,Content_Lime,resp)
 ```
 
 
 ```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
+Content_Lime
 ```
 
 
