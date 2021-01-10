@@ -1,0 +1,76 @@
+---
+title: "Untitled"
+output: html_document
+---
+```{r}
+#install.packages("qcc")
+pdensity <- c(10.6817, 10.6040, 10.5709, 10.7858,
+10.7668, 10.8101, 10.6905, 10.6079,
+10.5724, 10.7736, 11.0921, 11.1023,
+11.0934, 10.8530, 10.6774, 10.6712,
+10.6935, 10.5669, 10.8002, 10.7607,
+10.5470, 10.5555, 10.5705, 10.7723)
+gdensity <- rep(1:6, each = 4)
+library(qcc)
+myGroups <- qcc.groups(data = pdensity,
+sample = gdensity)
+myGroups
+```
+
+
+```{r}
+myqcc <- qcc(myGroups, type = "xbar", plot = FALSE)
+myqcc
+```
+
+
+```{r}
+mybeta <- oc.curves(myqcc)
+```
+
+
+```{r}
+head(mybeta)
+```
+
+
+```{r}
+mybeta["1.5",]
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+

@@ -1,0 +1,187 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+# DOE six sigma
+https://datascienceplus.com/six-sigma-dmaic-series-in-r-part4/
+```{r}
+library(tidyverse)
+```
+
+
+```{r}
+pizzaDesign <- expand.grid(flour = gl(2, 1, labels = c("-",
+                                                       "+")),
+                           salt = gl(2, 1, labels = c("-", "+")),
+                           bakPow = gl(2, 1, labels = c("-", "+")),
+                           score = NA)
+pizzaDesign
+```
+
+
+```{r}
+pizzaDesign$ord <- sample(1:8, 8)
+pizzaDesign
+```
+
+
+```{r}
+pizzaDesign[order(pizzaDesign$ord),]
+```
+2^k factorial Designs
+
+2k factorial designs are those whose number of factors to be studied are k, all of them with 2 levels. The number of experiments we need to carryout to obtain a complete replication is precisely the power(2 to the k). If we want n replications of the experiment, then the total number of experiments is n×2k.
+ANOVA can be used to estimate the effect of each factor and interaction and assess which of these effects are signiﬁcant.
+
+```{r}
+ss.data.doe1 <- data.frame(repl = rep(1:2, each = 8), rbind(pizzaDesign[, -6], pizzaDesign[, -6])) 
+ss.data.doe1$score <- c(5.33, 6.99, 4.23, 6.61, 2.26, 5.75, 3.26, 6.24, 5.7, 7.71, 5.13, 6.76, 2.79, 4.57, 2.48, 6.18)
+ss.data.doe1
+```
+
+
+```{r}
+aggregate(score ~ flour + salt + bakPow, FUN = mean, data = ss.data.doe1)
+```
+
+
+```{r}
+doe.model1 <- lm(score ~ flour + salt + bakPow + flour * salt + flour * bakPow + salt * bakPow + flour * salt * bakPow, data = ss.data.doe1) 
+
+
+summary(doe.model1)
+```
+p-values show that the main effects of the ingredients ﬂour and baking powder are signiﬁcant, while the effect of the salt is not signiﬁcant. Interactions among the ingredients are neither 2-way nor 3-way, making them insigniﬁcant. Thus, we can simplify the model, excluding the non signiﬁcant effects. Thus, the new model with the signiﬁcant effects is :
+
+```{r}
+doe.model2 <- lm(score ~ flour + bakPow, data = ss.data.doe1) 
+summary(doe.model2)
+```
+Therefore,the statistical model for our experiment is
+
+score =4.8306 + 2.4538*Flour-1.8662*bakpow
+
+Thus, the recipe with a high level of ﬂour and low level of baking powder will be the best one, regardless of the level of salt (high or low). The estimated score for this recipe is
+
+4.8306 +2.4538 x 1 +(-1.8662) x 0 = 7.284
+
+predict function can be used to get the estimation for all the experiment conditions.
+
+```{r}
+predict(doe.model2)
+```
+
+
+```{r}
+prinEf <- data.frame(Factor = rep(c("A_Flour", "C_Baking Powder"), each = 2), Level = rep(c(-1, 1), 2), Score = c(aggregate(score ~ flour, FUN = mean, data = ss.data.doe1)[,2], aggregate(score ~ bakPow, FUN = mean, data = ss.data.doe1)[,2])) 
+p <- ggplot(prinEf, aes(x = Level, y = Score)) + geom_point() + geom_line() +geom_hline(yintercept =mean(ss.data.doe1$score),linetype="dashed", 
+                                                                                        color = "blue")+scale_x_continuous(breaks = c(-1, 1)) + facet_grid(. ~ Factor)+ggtitle("Plot of Factor Effects")
+print(p)
+```
+
+The interaction plot is as shown below.The lines don’t cross means that there is no interaction between the factors plotted.
+
+```{r}
+intEf <- aggregate(score ~ flour + bakPow, FUN = mean, data = ss.data.doe1) 
+q <- ggplot(intEf, aes(x = flour, y = score, color = bakPow )) + geom_point() + geom_line(aes(group=bakPow)) +geom_hline(yintercept =mean(ss.data.doe1$score),linetype="dashed", 
+                                                                                                                        color = "blue")+ggtitle("Interaction Plot")
+print(q)
+```
+
+The normality of residual can be checked with Shapiro test. As the p-value is large, fail to reject the Null hypothesis of Normality of residuals.
+```{r}
+shapiro.test(residuals(doe.model2))
+```
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
