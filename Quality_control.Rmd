@@ -2,40 +2,129 @@
 title: "Untitled"
 output: html_document
 ---
+# Chapter 2 Attribute Sampling Plans
+
 ```{r}
-#install.packages("qcc")
-pdensity <- c(10.6817, 10.6040, 10.5709, 10.7858,
-10.7668, 10.8101, 10.6905, 10.6079,
-10.5724, 10.7736, 11.0921, 11.1023,
-11.0934, 10.8530, 10.6774, 10.6712,
-10.6935, 10.5669, 10.8002, 10.7607,
-10.5470, 10.5555, 10.5705, 10.7723)
-gdensity <- rep(1:6, each = 4)
-library(qcc)
-myGroups <- qcc.groups(data = pdensity,
-sample = gdensity)
-myGroups
+#install.packages("AcceptanceSampling")
+library(AcceptanceSampling)
+find.plan(PRP=c(0.05,0.95),CRP=c(0.15,0.20),type="hypergeom",N=500)
+```
+As an example of this function, consider finding a sampling plan where the 
+AQL=0.05,  α =.05, 1- α = 0.95
+RQL = 0.15, and  β =0.20 for a lot of 500 items
+
+Sample size should be n = 51 and acceptance number c = 5
+
+The following code produces the OC curve for this plan that is shown in Figure 2.3.
+```{r}
+library(AcceptanceSampling)
+plan<-OC2c(51,5,type="hypergeom", N=500, pd=seq(0,.25,.01))
+plot(plan, type='l')
+grid()
+```
+The code below shows how close the producer and consumer risk points for this plan are to the requirement.
+
+```{r}
+library(AcceptanceSampling)
+assess(OC2c(51,5), PRP=c(0.05, 0.95), CRP=c(0.15,0.20))
+```
+
+o make the OC curve steeper and closer to the customer’s ideal, the required RQL can be made closer to the AQL. For example in the R code below, the RQL is reduced from 0.15 to 0.08. As a result, the  
+find.plan
+  function finds a plan with a much higher sample size  n=226
+  
+```{r}
+library(AcceptanceSampling)
+find.plan(PRP=c(0.05,0.95),CRP=c(0.08,0.20),type="hypergeom",N=500)
+```
+```{r}
+plan<-OC2c(226,15,type="hypergeom", N=500, pd=seq(0,.25,.01))
+plot(plan, type='l')
+grid()
+```
+
+## 2.5 Double and Multiple Sampling Plans
+
+```{r}
+library(AcceptanceSampling)
+plns<-OC2c(n=134,c=3,type="hypergeom", N=1000,pd=seq(0,.20,.01))
+assess(plns,PRP=c(.01,.95),CRP=c(.05,.10))
 ```
 
 
 ```{r}
-myqcc <- qcc(myGroups, type = "xbar", plot = FALSE)
-myqcc
+library(AcceptanceSampling)
+pln3<-OC2c(n=c(88,88),c=c(1,4),r=c(4,5),type="hypergeom",N=1000,pd=seq(0,.20,.01))
+assess(pln3,PRP=c(.01,.95),CRP=c(.05,.10))
+```
+# Chapter 3 Variables Sampling Plans
+
+When actual quantitative information can be measured on sampled items, rather than simply classifying them as conforming or nonconforming, variables sampling plans can be used. To achieve the same operating characteristic, a variables sampling plan requires fewer samples than an attribute plan since more information is available in the measurements. If the measurements do not require much more time and expense than classifying items, the variables sampling plan provides an advantage. When a lot is rejected, the measurements in relation to the specification limits give additional information to the supplier and may help to prevent rejected lots in the future. This is also an advantage of the variables sampling plan.
+
+The disadvantage of variables sampling plans is that they are based on the assumption that the measurements are normally distributed (at least for the plans available in published tables or through pre-written software).
+
+## 3.1 The k-Method
+
+```{r}
+library(AcceptanceSampling)
+AQL = 0.01
+RQL = 0.046
+alpha = 0.05
+beta = 0.10
+find.plan(PRP=c(AQL,1-alpha), CRP=c(RQL, beta), type="normal")
+```
+Take 21 sample, calculate average x value, compare (xtb - LSL)/sigma to k =1.967.
+if (xtb - LSL)/sigma > k =1.967 --> accept the lot, otherwise reject the lot
+
+If the items in the sample could only be classified as nonconforming or conforming, an attribute sampling plan would require many more samples to have a equivalent OC curve as below:
+```{r}
+library(AcceptanceSampling)
+find.plan(PRP=c(0.01, 0.95), CRP=c(0.046, 0.10), type="binomial")
+```
+
+```{r}
+library(AcceptanceSampling)
+find.plan(PRP=c(.02,.92), CRP=c(.12,.10), type='normal')
+```
+select 10 bags, calculate xtb = 110, calculate ZL:
+ZL = (xtb - LSL)/ sigma = (110 - 100)/8 = 1.25 < 1.609=k --> reject the lot
+
+## 3.1.1.2 Standard Deviation Unknown
+```{r}
+library(AcceptanceSampling)
+find.plan(PRP=c(0.01, 0.95), CRP=c(0.046, 0.10), type="normal", s.type="unknown")
+```
+## 3.1.3 Upper and Lower Specification Limits
+
+```{r}
 ```
 
 
 ```{r}
-mybeta <- oc.curves(myqcc)
 ```
 
 
 ```{r}
-head(mybeta)
 ```
 
 
 ```{r}
-mybeta["1.5",]
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
 ```
 
 

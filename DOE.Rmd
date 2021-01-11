@@ -373,6 +373,126 @@ interaction.plot(Furnace_position,Content_Lime,resp)
 Content_Lime
 ```
 
+## 5.4.4 An Example of a  1/8 th fraction of a  2^7 Design.
+Large variation in the viscosity measurements of a chemical product were observed in an analytical laboratory (Snee 1985). The viscosity was a key quality characteristic of a high volume product. Since it was impossible to control viscosity without being able to measure it accurately, it was decided to conduct a ruggedness test [J. and Steiner (1975), (Wernimount 1977) of the measurement process to see which variables if any influenced the viscosity measurement. Discussions about how the measurement process worked identified 7 possible factors that could be important. A description of the measurement process and possible factors follows.
+
+
+Factors	Level (-)	Level (+)
+A–Sample Preparation	M1	M2
+B–Moisture measurement	Volume	Weight
+C–Mixing Speed(rpm )	800	1600
+D–Mixing Time(hrs)	0.5	3
+E–Healing Time(hrs)	1	2
+F–Spindle	S1	S2
+G–Protective Lid	Absent	Present
+
+
+```{r}
+library(FrF2)
+frac1<-FrF2(16,7,generators=c("BCD","ACD","ABC"),randomize=FALSE)
+frac1
+```
+
+
+```{r}
+library(daewr)
+library(FrF2)
+viscosity<-c(2796,2460,2904,2320,2800,3772,2420,3376,2220,2548,2080,2464,3216,2380,
+             3196,2340)
+aliases(lm(viscosity~(.)^4, data=frac1))
+```
+
+
+```{r}
+modf<-lm(viscosity~A+B+C+D+E+F+G+A:B+A:C+A:D+A:E+A:F+A:G+B:D+A:B:D,data=frac1)
+summary(modf)
+fullnormal(coef(modf)[-1],alpha=.15)
+```
+
+
+```{r}
+Mixing_speed<-rep(0,16)
+Spindle<-rep(1,16)
+for ( i in 1:16) {
+if(frac1$C[i]==-1) {Mixing_speed[i]=800} else {Mixing_speed[i]=1600}
+if(frac1$F[i]==1) Spindle[i]=2
+}
+interaction.plot(Mixing_speed,Spindle,viscosity,type="b",pch=c(1,2),col=c(1,2))
+```
+## 5.5 Alternative Screening Designs
+
+```{r}
+library(daewr)
+Design<-Altscreen(nfac=6,randomize=FALSE)
+Thickness<-c(4494,4592,4357,4489,4513,4483,4288,4448,4691,
+    4671,4219,4271,4530,4632,4337,4391)
+cat("Table of Design and Response")
+cbind(Design,Thickness)
+```
+
+
+```{r}
+HierAFS(Thickness,Design,m=0,c=6,step=4)
+```
+
+
+```{r}
+mod<-lm(Thickness~A+B+C+E+C:E,data=Design)
+summary(mod)
+```
+A=spin speed had a positive effect on thickness, and increasing spin speed increased thickness. B=acceleration had a negative effect on thickness and increasing acceleration decreased thickness. Because of the significant interaction, it is difficult to say from the main effects only what combinations of C=volume of resist applied, and E=resist viscosity would increase or decrease the thickness. The code below produces the interaction plot shown in Figure 5.18. This plot makes it clear.
+
+```{r}
+volume_of_resist_applied <- Design$C
+resist_viscosity <- Design$E
+interaction.plot(volume_of_resist_applied,resist_viscosity,Thickness,type="b",
+                 #xlab="volume of resist applied",
+                 pch=c(1,2),col=c(1,2))
+```
+The greatest thickness results with a low C=volume of resist applied and a low E=resist viscosity, and the smallest thickness is produced using low E=resist viscosity but a high C=volume of resist applied.
+
+## 5.6 Response Surface and Definitive Screening Experiments
+```{r}
+library(daewr)
+Design<-DefScreen(m=8,c=0)
+Design
+```
+Factors	Level (-)	Level (+)
+A–Carbonation temperature	600(°C)	1000(°C)
+B–Ratio of precursor to surfactant	0.7	1.3
+C–EISA-Time	6 h	24 h
+D–Curing time	12 h	24 h
+E–EISA surface area	65(cm2)	306(cm2)
+```{r}
+library(daewr)
+design<-DefScreen(m=5,c=0,center=2,randomize=FALSE)
+design
+```
+
+
+```{r}
+library(daewr)
+Smeso<-c(241,295,260,338,320,265,275,248,92.5,383,313,305,304)
+FitDefSc(Smeso,design,alpha=.05)
+```
+
+
+```{r}
+FitDefSc(Smeso,design,alpha=.1)
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
 
 ```{r}
 ```
